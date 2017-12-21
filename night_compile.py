@@ -7,9 +7,9 @@ from lib.commons import logger, NoCompilerError, Memory
 from solc.exceptions import SolcError
 
 
-NAME = 'Night compile'
+NAME = 'Night-Compile'
 DESCRIPTION = "Night compiles solidity and viper smart contracts. \
-It detects contract language by extension.\n"
+Uses file extension to detect contract language.\n"
 
 USAGE = "night compile <file>\n\n\
 i.e. \n\

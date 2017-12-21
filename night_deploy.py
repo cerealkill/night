@@ -1,16 +1,48 @@
 import time
 import web3
 
-from lib import AsyncClientError, Spinner, logger
+from lib.commons import AsyncClientError, logger
 
-MAX_RETRIES = 100
-SECONDS_BETWEEN_RETRIES = 5
 
+NAME = 'Night-Deploy'
+DESCRIPTION = "Night deploys pre-compiled smart contracts."
+
+USAGE = "night compile <file>\n\n\
+i.e. \n\
+night compile ~/solidity/smart_contract.sol\n\
+night compile ~/viper/smart_contract.v.py\n"
+
+parser = argparse.ArgumentParser(prog=NAME, usage=USAGE, description=DESCRIPTION)
+parser.add_argument('contract', help="Path to 'sol' or 'v.py' file")
+parser.add_argument('--verbose', help="Increase output verbosity.", action="store_true")
+parser.add_argument('--silent', help="Only outputs errors.", action="store_true")
+args = parser.parse_args()
+
+if args.verbose and not args.silent:
+    logger.level = logger.levels.DEBUG
+    logger.info("High verbosity is \033[1mON")
+
+if args.silent:
+    logger.level = logger.levels.ERROR
+
+logger.warning("-= Night Compiler =-\n")
 
 # DEPLOY
 try:
 
+    if not password:
+        print('Password: ')
+        password = ''
+        # TODO: Add password reader
+
     logger.info("Connecting to ethereum client.")
+
+    # Show the status to the user
+    if tx_receipt['status'] == 0:
+        if tx_receipt['gasUsed'] == tx_receipt['gasSent']:
+            raise AllGasUsedWarning
+    else:
+        return tx_receipt
 
     # web3.py instance
     w3 = web3.Web3(web3.HTTPProvider('http://localhost:8545'))
