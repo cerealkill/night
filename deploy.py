@@ -1,98 +1,11 @@
-import argparse
-import json
-import os
-import colorlog
-import logging
-import requests
-import solc
 import time
 import web3
 
-from requests import ReadTimeout
-
-from lib import AsyncClientError, Spinner
-
-NAME = 'Night'
-VERSION = '0.1'
-BUILD = 'dec.2017'
-AUTHOR = 'github.com/cerealkill/night'
-V = '{n} version {v} {b} {a}'.format(n=NAME, v=VERSION, b=BUILD, a=AUTHOR)
-HEADER = '{n} v{v}'.format(n=NAME, v=VERSION)
-
-USAGE = 'night PATH_TO_CONTRACT CONTRACT_NAME ACCOUNT_ADDRESS ACCOUNT_PASSWORD --ARGS\n\n\
-i.e. night --verbose example.sol 4100000 0x00E27b1BB824D66d8ec926f23b04913Fe9b1Bd77 PASSword123ADS'
-DESCRIPTION = 'Night is a Ethereum smart contract compilation and deployment tool.'
+from lib import AsyncClientError, Spinner, logger
 
 MAX_RETRIES = 100
 SECONDS_BETWEEN_RETRIES = 5
 
-parser = argparse.ArgumentParser(prog=NAME, usage=USAGE, description=DESCRIPTION)
-parser.add_argument("contract", help="Path to Smart Contract written in Solidity.")
-parser.add_argument("contract_name", help="Name of the main Smart Contract you wnat to deploy.")
-parser.add_argument("account", help="Address of the user's account.")
-parser.add_argument("password", help="Password to unlock the account.")
-
-parser.add_argument('-v', '--version', action='version', version=V)
-parser.add_argument('-e', "--verbose", help="Increase output verbosity.", action="store_true")
-args = parser.parse_args()
-
-print(HEADER)
-
-handler = colorlog.StreamHandler()
-# %(log_color)s%(asctime)s - %(levelname)s - %(message)s
-handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(message)s'))
-
-# Default color scheme is 'example'
-logger = colorlog.getLogger('example')
-logger.addHandler(handler)
-
-if args.verbose:
-    logger.level = logging.DEBUG
-    logger.info("Verbosity is \033[1mON")
-
-if not os.path.exists(args.contract):
-    logger.critical("File " + args.contract + " not found.")
-    exit()
-
-# READ FILE
-try:
-    with open(args.contract) as contract_file:
-        contract_source_code = contract_file.read()
-
-    if len(contract_source_code) < 10:
-        logger.critical("File " + args.contract + " is empty.\n")
-        exit()
-
-except FileNotFoundError as e:
-    logger.critical("File not found.")
-    logger.warning("Quitting.")
-    exit()
-
-# COMPILE
-try:
-
-    logger.info("Compiling contract.")
-
-    # Use solc to compile contract
-    compiled_sol = solc.compile_source(contract_source_code) # Compiled source code
-    cname = '<stdin>:' + args.contract_name
-    contract_interface = compiled_sol[cname]
-
-    ABI = 'abi.json'
-    with open('abi.json', 'w+') as abi:
-        abi.write(json.dumps(contract_interface['abi']))
-    logger.warning("Abi written to " + ABI)
-
-except solc.exceptions.SolcError as e:
-    logger.warning("Failed to compile smart contract. Fix error bellow:\n")
-    logger.exception(".")
-    logger.warning("Quitting.")
-    exit()
-
-except Exception as e:
-    logger.error("Unexpected error: " + str(e))
-    logger.warning("Quitting.")
-    exit()
 
 # DEPLOY
 try:
@@ -106,7 +19,9 @@ try:
     latest_block_obj = w3.eth.getBlock('latest')
     latest_block_str = str(latest_block_obj.number)
 
-    if synced_block_str == latest_block_str:
+    peers = w3.net.peerCount
+
+    if synced_block_str != latest_block_str or peers < 5:
         logger.info('Synced \033[1mOK')
     else:
         raise AsyncClientError
@@ -148,7 +63,7 @@ except (requests.exceptions.ConnectionError, ConnectionRefusedError, ReadTimeout
     logger.critical("Connection timed out. - Please verify that the ethereum client is running.")
 
 except AsyncClientError:
-    logger.error("ethereum client is Out of Sync. Please check the client log and try again.")
+    logger.error("Ethereum client is Out of Sync or Forked. Please check the client log and try again.")
 
 except ValueError as ve:
     message =ve.args[0]['message']

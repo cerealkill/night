@@ -1,8 +1,11 @@
+import pickle
 import sys
 import time
 import threading
+from pathlib import Path
 
-from colorlog import colorlog
+import os
+import colorlog
 
 handler = colorlog.StreamHandler()
 # %(log_color)s%(asctime)s - %(levelname)s - %(message)s
@@ -11,6 +14,24 @@ handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(message)s'))
 # Default color scheme is 'example'
 logger = colorlog.getLogger('example')
 logger.addHandler(handler)
+
+
+def save(file_name, data):
+    with open(file_name, 'w+') as file:
+        file.write(data)
+
+
+class Memory:
+
+    def __init__(self, file):
+        home_path = str(Path.home().joinpath('.night/'))
+        if not os.path.exists(home_path):
+            os.makedirs(home_path)
+        self.file = home_path + file
+        self.memory = pickle.load(open(self.file, 'rb'))
+
+    def save_memory(self, memory):
+        pickle.dump(memory, open(self.file, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
 class Spinner:

@@ -1,8 +1,22 @@
+import argparse
 import os
-import pickle
-
 import solc
 import json
+import lib
+
+NAME = 'night compile'
+DESCRIPTION = 'Compiles solidity and viper smart contracts.'
+
+USAGE = "night compile [-s | --solidity] [-v | --viper] <file>\n\t\
+i.e. night compile ~/solidity/smart_contract.sol\
+i.e. night compile ~/viper/smart_contract.v.py\n\t\
+i.e. night compile -s ~/solidity/smart_contract.sol"
+
+parser = argparse.ArgumentParser(prog=NAME, usage=USAGE, description=DESCRIPTION)
+parser.add_argument('-s', '--solidity', help="Force the compiler to use solidity.")
+parser.add_argument('-v', '--viper', help="Force the compiler to use Viper.")
+parser.add_argument('contract', help="Path to 'sol' or 'v.py' file")
+args = parser.parse_args()
 
 
 class Solidity:
@@ -20,24 +34,21 @@ class Solidity:
         with open(path) as contract_file:
             self.__source_code = contract_file.read()
 
-    def compile(self):
+    def compile(self, memory=None):
         contracts = solc.compile_source(self.__source_code)
+        memory = {}
         for contract in contracts:
+            # extract contract name from obj
             name = contract[8:]
+            # contract abi
             abi = json.dumps(contracts[contract]['abi'])
-            abi_file = name + '.abi'
-            self.save(abi_file, abi)
-            bin = contracts[contract]['bin']
-            bin_file = name + '.bin'
-            self.save(bin_file, bin)
-            contract_file = name + '.pkl'
-            self.save_pickle(contract_file, contracts[contract])
-
-    def save(self, file_name, data):
-        full_path = self.__path + file_name
-        with open(full_path, 'w+') as file:
-            file.write(data)
-
-    def save_pickle(self, file_name, data):
-        full_path = self.__path + file_name
-        pickle.dump(data, open(full_path, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+            abi_file = self.__path + name + '.abi'
+            lib.save(abi_file, abi)
+            # contract bytecode
+            bytecode = contracts[contract]['bin']
+            bin_file = self.__path + name + '.bin'
+            lib.save(bin_file, bytecode)
+            # contract memory for bash autocomplete
+            if memory:
+                memory[contract] = {'abi': contracts[contract]['abi'], 'bin': contracts[contract]['bin']}
+                lib.save_memory(memory)
