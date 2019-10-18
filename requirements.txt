@@ -9,7 +9,7 @@ eth-tester==0.1.0b5
 eth-utils==0.7.1
 idna==2.6
 py-solc==2.1.0
-pycryptodome==3.4.7
+pycryptodome==3.6.6
 pylru==1.0.9
 pysha3==1.0.2
 requests==2.18.4
